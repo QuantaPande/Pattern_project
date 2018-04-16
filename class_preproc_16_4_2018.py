@@ -70,9 +70,7 @@ class preProc():
         print("DONE!!!! Split dataset")
         self.train_knn.drop(['job', 'marital', 'education', 'default', 'housing', 'loan'], axis = 1, inplace = True)
         print("DONE!!!! Dropped features")
-        prefix_passed = {'contact':'contact', 'month':'month', 'day_of_week':'day_of_week', 'poutcome':'poutcome'}
-        columns_passed = ['contact', 'month', 'day_of_week', 'poutcome']
-        self.train_knn_enc = ps.get_dummies(self.train_knn, prefix = prefix_passed , columns = columns_passed)
+        self.train_knn_enc = ps.get_dummies(self.train_knn, prefix = {'contact':'contacct', 'month':'month', 'day_of_week':'day_of_week', 'poutcome':'poutcome'}, columns=['contact', 'month', 'day_of_week', 'poutcome'])
         for i in list(self.train_knn_enc):
             self.train_knn_enc.loc[:, i] = self.train_knn_enc.loc[:, i] - np.mean(self.train_knn_enc.loc[:, i])
     
@@ -83,3 +81,21 @@ class preProc():
         self.data_train = self.fit_unknowns(self.data_train, self.known_index, self.unknown_index, self.train_knn_enc, 5)
         self.data_train.to_csv("bank-additional-cleaned.csv", index = False)
         print(self.data_train)
+        self.numeric = ['age', 'campaign', 'pdays', 'previous', 'emp.var.rate', 
+                        'cons.price.idx', 'cons.conf.idx', 'euribor3m', 'nr.employed']
+        self.category = ['job', 'marital', 'education', 'default', 'housing', 'loan', 
+                    'contact', 'month', 'day_of_week', 'poutcome']
+        self.data_train_numeric = ps.DataFrame(columns = list(self.numeric))
+        self.data_train_numeric[self.numeric] = self.data_train[self.numeric]
+
+        self.data_train_category = ps.DataFrame(columns = list(self.category))
+        self.data_train_category[self.category] = self.data_train[self.category]
+
+
+        self.data_train_norm = (self.data_train_numeric-self.data_train_numeric.mean(axis=0, numeric_only=True))/self.data_train_numeric.std(axis=0, numeric_only=True)
+        self.data_train_norm[self.category] = self.data_train_category[self.category]
+        self.data_train_norm = ps.get_dummies(self.data_train_norm, 
+                                    prefix = None, 
+                                    columns=self.category)
+        self.data_train = self.data_train_norm.values
+        print(self.data_train_norm)
