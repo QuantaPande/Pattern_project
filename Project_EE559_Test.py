@@ -74,6 +74,7 @@ for i in list(train_knn_enc):
     train_knn_enc.loc[:, i] = train_knn_enc.loc[:, i] - np.mean(train_knn_enc.loc[:, i])
 
 data_train = fit_unknowns(data_train, known_index, unknown_index, train_knn_enc, 5)
+data_train.to_csv("bank-additional-cleaned.csv")
 print(data_train)
 
 
