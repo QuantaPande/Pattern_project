@@ -67,5 +67,35 @@ data_test.set_index(np.arange(0, data_test.shape[0]))
 #print(data_x)
 #print(data_test)
 
+train_knn = ps.DataFrame(columns = list(data_train))
+train_knn = train_knn.append(data_train.loc[0, :])
+fill_unknown = ps.DataFrame(columns = list(data_train))
+fill_unknown = fill_unknown.append(data_train.loc[0, :])
+known_index = []
+for i in range(1, data_train.shape[0]):
+    if (~data_train[i,:] == 'NaN'):
+        train_knn = train_knn.append(data_train.loc[i, :])
+        known_index.append(i)
+    else:
+        fill_unknown = fill_unknown.append(data_train.loc[i, :])
+
+
+train_knn.drop('job', 'maital', 'education', 'default', 'housing', 'loan')
+fill_unknown.drop('job', 'maital', 'education', 'default', 'housing', 'loan')
+
+ohe = OneHotEncoder()
+for i in range (1,4):
+    ohe.fit_transform(train_knn[:,i])
+    ohe.fit_transform(fill_unknown[:,i])
+ohe.fit_transform(train_knn[:,7])
+ohe.fit_transform(fill_unknown[:,7])
+
+train_knn.drop('contact', 'month', 'day_of_week', 'poutcome')
+fill_unknown.drop('contact', 'month', 'day_of_week', 'poutcome')
+
+
+train_knn = train_knn.values
+fill_unknown = fill_unknown.values
+
 knn_loc = kNearestNeighbours(train_knn, 5)
 
