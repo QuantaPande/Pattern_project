@@ -70,7 +70,9 @@ class preProc():
         print("DONE!!!! Split dataset")
         self.train_knn.drop(['job', 'marital', 'education', 'default', 'housing', 'loan'], axis = 1, inplace = True)
         print("DONE!!!! Dropped features")
-        self.train_knn_enc = ps.get_dummies(self.train_knn, prefix = {'contact':'contacct', 'month':'month', 'day_of_week':'day_of_week', 'poutcome':'poutcome'}, columns=['contact', 'month', 'day_of_week', 'poutcome'])
+        prefix_passed = {'contact':'contact', 'month':'month', 'day_of_week':'day_of_week', 'poutcome':'poutcome'}
+        columns_passed = ['contact', 'month', 'day_of_week', 'poutcome']
+        self.train_knn_enc = ps.get_dummies(self.train_knn, prefix = prefix_passed , columns = columns_passed)
         for i in list(self.train_knn_enc):
             self.train_knn_enc.loc[:, i] = self.train_knn_enc.loc[:, i] - np.mean(self.train_knn_enc.loc[:, i])
     
