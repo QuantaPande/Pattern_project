@@ -49,6 +49,7 @@ class preProc():
             else:
                 self.unknown_index.append(i)
                 self.train_knn = self.train_knn.append(self.data_train.loc[i, :])
+        print(self.known_index)
     
     def eucDist(self, vec_1, vec_2):
         if(len(vec_1) != len(vec_2)):
@@ -63,17 +64,18 @@ class preProc():
         dist = np.empty((data_train.shape[0], 2))
         index_i = 0
         for i in known_index:
-            dist[index_i][0] = self.eucDist(train_knn.values, fill_known.loc[i, :].values)
-            dist[index_i][1] = i
+            dist[index_i, 0] = self.eucDist(train_knn.values, fill_known.loc[i, :].values)
+            dist[index_i, 1] = i.astype(int)
             index_i = index_i + 1
         dist = dist[dist[:, 0].argsort()]
         dist_knn = list(dist[1:k+1, 1])
         return dist_knn
-
         
     def fit_unknowns(self, data_train, known_index, unknown_index, train_knn_enc, k):
-        for i in self.unknown_index:
-            knn_loc = self.kNearestNeighbours(train_knn_enc.loc[i, :], train_knn_enc.loc[known_index, :], k)
+        known_index = np.ravel(known_index)
+        unknown_index = np.ravel(unknown_index)
+        for i in unknown_index:
+            knn_loc = self.kNearestNeighbours(train_knn_enc.loc[i, :], train_knn_enc, k, known_index, data_train)
             for j in list(data_train):
                 if data_train.loc[i, j] == 'NaN':
                     fitter_value = data_train.loc[knn_loc, j].mode().iloc[0]
@@ -82,9 +84,10 @@ class preProc():
 
     def oneHotEncoder(self):
         print("DONE!!!! Split dataset")
+        self.fill_known.drop(['job', 'marital', 'education', 'default', 'housing', 'loan'], axis = 1, inplace = True)
         self.train_knn.drop(['job', 'marital', 'education', 'default', 'housing', 'loan'], axis = 1, inplace = True)
         print("DONE!!!! Dropped features")
-        self.train_knn_enc = ps.get_dummies(self.train_knn, prefix = {'contact':'contacct', 'month':'month', 'day_of_week':'day_of_week', 'poutcome':'poutcome'}, columns=['contact', 'month', 'day_of_week', 'poutcome'])
+        self.train_knn_enc = ps.get_dummies(ps.concat([self.fill_known, self.train_knn], axis = 0), prefix = {'contact':'contacct', 'month':'month', 'day_of_week':'day_of_week', 'poutcome':'poutcome'}, columns=['contact', 'month', 'day_of_week', 'poutcome'])
         for i in list(self.train_knn_enc):
             self.train_knn_enc.loc[:, i] = self.train_knn_enc.loc[:, i] - np.mean(self.train_knn_enc.loc[:, i])
     
@@ -93,7 +96,6 @@ class preProc():
         self.idenUnknowns()
         self.oneHotEncoder()
         self.data_train = self.fit_unknowns(self.data_train, self.known_index, self.unknown_index, self.train_knn_enc, 5)
-        self.data_train.to_csv("bank-additional-cleaned-1.csv", index = False)
         print(self.data_train)
         self.numeric = ['age', 'campaign', 'pdays', 'previous', 'emp.var.rate', 
                         'cons.price.idx', 'cons.conf.idx', 'euribor3m', 'nr.employed']
@@ -101,16 +103,17 @@ class preProc():
                     'contact', 'month', 'day_of_week', 'poutcome']
         self.data_train_numeric = ps.DataFrame(columns = list(self.numeric))
         self.data_train_numeric[self.numeric] = self.data_train[self.numeric]
-
         self.data_train_category = ps.DataFrame(columns = list(self.category))
         self.data_train_category[self.category] = self.data_train[self.category]
-
-
-        self.data_train_norm = (self.data_train_numeric-self.data_train_numeric.mean(axis=0, numeric_only=True))/self.data_train_numeric.std(axis=0, numeric_only=True)
+        self.data_train_norm = ps.DataFrame(columns = list(self.data_train))
+        self.data_train_norm[self.numeric] = (self.data_train_numeric-self.data_train_numeric.mean(axis=0, numeric_only=True))/self.data_train_numeric.std(axis=0, numeric_only=True)
         self.data_train_norm[self.category] = self.data_train_category[self.category]
         self.data_train_norm = ps.get_dummies(self.data_train_norm, 
                                     prefix = None, 
                                     columns=self.category)
-        self.data_train_norm[self.label_train] = self.data_train_category[self.category]
+        self.data_train_norm = ps.concat([self.data_train_norm, self.label_train], axis = 1)
         self.data_train = self.data_train_norm.values
+        #self.data_train = ps.concat([self.data_train, self.label_train], axis = 1)
+        self.data_train.to_csv("bank-additional-cleaned-1.csv", index = False)
+        #self.data_test = ps.concat([self.data_test, self.label_test], axis = 1)
         self.data_test.to_csv("bank-additional-test.csv", index = False)
