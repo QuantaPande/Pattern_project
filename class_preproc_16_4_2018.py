@@ -34,7 +34,7 @@ class preProc():
                 self.known_index.append(i)
             else:
                 self.unknown_index.append(i)
-            self.train_knn = self.train_knn.append(self.data_train.loc[i, :])
+                self.train_knn = self.train_knn.append(self.data_train.loc[i, :])
     
     def eucDist(self, vec_1, vec_2):
         if(len(vec_1) != len(vec_2)):
@@ -45,10 +45,10 @@ class preProc():
         dist = math.sqrt(dist)
         return dist
 
-    def kNearestNeighbours(self, train_knn, data_train, k):
+    def kNearestNeighbours(self, train_knn, data_train, known_index, k):
         dist = np.empty((data_train.shape[0], 2))
         index_i = 0
-        for i in data_train.index.tolist():
+        for i in known_index:
             dist[index_i][0] = self.eucDist(train_knn.values, data_train.loc[i, :].values)
             dist[index_i][1] = i
             index_i = index_i + 1
@@ -87,11 +87,8 @@ class preProc():
                     'contact', 'month', 'day_of_week', 'poutcome']
         self.data_train_numeric = ps.DataFrame(columns = list(self.numeric))
         self.data_train_numeric[self.numeric] = self.data_train[self.numeric]
-
         self.data_train_category = ps.DataFrame(columns = list(self.category))
         self.data_train_category[self.category] = self.data_train[self.category]
-
-
         self.data_train_norm = (self.data_train_numeric-self.data_train_numeric.mean(axis=0, numeric_only=True))/self.data_train_numeric.std(axis=0, numeric_only=True)
         self.data_train_norm[self.category] = self.data_train_category[self.category]
         self.data_train_norm = ps.get_dummies(self.data_train_norm, 
