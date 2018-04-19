@@ -10,6 +10,7 @@ from sklearn.linear_model import Perceptron
 from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.decomposition import PCA
+from sklearn.naive_bayes import GaussianNB
 import online_preproc
 
 data_x = online_preproc.preProc("OnlineNewsPopularityReduced.csv")
@@ -57,3 +58,13 @@ knn_pca = KNeighborsClassifier()
 knn_pca.fit(data_train_pca, label_train)
 print('Training accuracy knn pca is ', knn_pca.score(data_train_pca, label_train))
 print('Testing accuracy knn pca is ', knn_pca.score(data_test_pca, label_test))
+
+nb = GaussianNB()
+nb.fit(data_train, label_train)
+print('Training accuracy nb is ', nb.score(data_train, label_train))
+print('Testing accuracy nb is ', nb.score(data_test, label_test))
+
+nb_pca = GaussianNB()
+nb_pca.fit(data_train_pca, label_train)
+print('Training accuracy nb pca is ', nb_pca.score(data_train_pca, label_train))
+print('Testing accuracy nb pca is ', nb_pca.score(data_test_pca, label_test))
