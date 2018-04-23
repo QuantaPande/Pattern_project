@@ -12,10 +12,10 @@ class preProc():
         self.data_train = self.data_train.replace(to_replace = 'unknown', value = 'NaN')
         self.data_test = ps.DataFrame(columns = list(self.data_train))
     
-    def splitDataset(self):
+    def splitDataset(self, k):
         for i in range(0, self.data_train.shape[0]):
             rand = np.random.random_sample()
-            if(rand < 0.1):
+            if(rand < k):
                 self.data_test = self.data_test.append(self.data_train.loc[i, :])
                 self.data_train.drop(i, axis = 0, inplace = True)
         self.data_train.set_index(np.arange(0, self.data_train.shape[0]))
@@ -100,8 +100,8 @@ class preProc():
                 j = j + 1
         return dist_knn
         
-    def processDataset(self, k):
-        self.splitDataset()
+    def processDataset(self, k, split):
+        self.splitDataset(split)
         self.idenUnknowns()
         self.oneHotEncoder()
         self.data_train = self.fit_unknowns(self.data_train, self.known_index, self.unknown_index, 5, self.train_knn)
