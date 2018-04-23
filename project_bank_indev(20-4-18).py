@@ -14,7 +14,9 @@ import time
 
 t0 = time.time()
 data_x = class_preproc.preProc("bank-additional.csv")
-data_x.processDataset(5, 0.3)
+split = input("Enter the split you want")
+k = input("Enter the value of k for KNN analysis")
+data_x.processDataset(k, split)
 data_train = data_x.data_train.values
 #data_test = data_x.data_test
 label_train = data_x.label_train.values
