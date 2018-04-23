@@ -105,7 +105,7 @@ class preProc():
         self.idenUnknowns()
         self.oneHotEncoder()
         self.data_train = self.fit_unknowns(self.data_train, self.known_index, self.unknown_index, 5, self.train_knn)
-        print(self.data_train)
+        print('Data cleaned! Unknowns filled with best estimates')
         self.numeric = ['age', 'campaign', 'pdays', 'previous', 'emp.var.rate', 
                         'cons.price.idx', 'cons.conf.idx', 'euribor3m', 'nr.employed']
         self.data_train_norm = ps.DataFrame(columns = list(self.data_train))
