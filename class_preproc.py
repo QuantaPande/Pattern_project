@@ -1,6 +1,7 @@
 import pandas as ps
 import sklearn as skl
 import numpy as np
+from sklearn.linear_model import LogisticRegression
 
 class preProc():
     def __init__(self, filename):
@@ -10,16 +11,19 @@ class preProc():
         #self.data_train.drop(['y_class'], axis = 1, inplace = True)
         #self.data_train.drop(['y'], axis = 1, inplace = True)
         self.data_train = self.data_train.replace(to_replace = 'unknown', value = 'NaN')
+        drop_terms = []
+        for i in self.data_train.index:
+            if self.data_train.loc[i, 'education'] == 'illiterate' or self.data_train.loc[i, 'default'] == 'yes':
+                drop_terms.append(i)
+        self.data_train.drop(drop_terms, axis = 0, inplace = True)
         self.data_test = ps.DataFrame(columns = list(self.data_train))
     
     def splitDataset(self, k):
-        for i in range(0, self.data_train.shape[0]):
+        for i in list(self.data_train.index.values):
             rand = np.random.random_sample()
             if(rand < k):
                 self.data_test = self.data_test.append(self.data_train.loc[i, :])
                 self.data_train.drop(i, axis = 0, inplace = True)
-        self.data_train.set_index(np.arange(0, self.data_train.shape[0]))
-        self.data_test.set_index(np.arange(0, self.data_test.shape[0]))
         self.label_train = ps.DataFrame(columns = ['y'])
         self.label_train['y'] = self.data_train['y_class']
         self.data_train.drop(['y_class'], axis = 1, inplace = True)
@@ -100,7 +104,7 @@ class preProc():
             else:
                 j = j + 1
         return dist_knn
-        
+    
     def processDataset(self, k, split):
         self.splitDataset(split)
         self.idenUnknowns()
@@ -120,10 +124,10 @@ class preProc():
                                     columns=self.unk_category + self.k_category)
         #self.data_train_norm['y'] = self.label_train['y']
         self.data_train = self.data_train_norm
+        #self.data_train = self.dropFeatures(self.data_train)
         self.data_train.drop(['y'], axis = 1, inplace = True)
         self.data_train = ps.concat([self.data_train, self.label_train], axis = 1)
         self.data_train.to_csv("bank-additional-train-cleaned-encoded.csv", index = False)
-        #self.data_test = ps.concat([self.data_test, self.label_test], axis = 1)
         self.data_train.drop(['y'], axis = 1, inplace = True)
 
 # =============================================================================
@@ -173,7 +177,8 @@ class testProc():
             for j in list(self.rawdata):
                 if self.data_test.loc[i, j] == 'NaN':
                     fitter_value = data_train.loc[knn_loc, j].mode().iloc[0]
-                    aelf.data_test.loc[i, j] = fitter_value
+                    self.data_test.loc[i, j] = fitter_value
+        print(self.data_test.shape)
         return self.data_test
  
     def oneHotEncoder(self):
@@ -210,10 +215,64 @@ class testProc():
         self.rawdata_norm = ps.DataFrame(columns = list(self.rawdata))
         self.rawdata_norm[self.numeric] = (self.rawdata_numeric-self.data_train_numeric.mean(axis=0, numeric_only=True))/self.data_train_numeric.std(axis=0, numeric_only=True)
         self.rawdata_norm[self.category] = self.rawdata_category[self.category]
-        self.rawdata_norm.to_csv("bank-additional-test-cleaned.csv", index = False)
+        #self.rawdata_norm = ps.get_dummies(self.rawdata_norm, prefix = {key: value for (key, value) in zip(self.category, self.category)}, columns = self.category)
         self.rawdata_norm = ps.get_dummies(self.rawdata_norm, 
-                                    prefix = None, 
-                                    columns=self.category)
+                                    prefix = {key: value for (key, value) in zip(self.category, self.category)}, 
+                                    columns = self.category)
+        print(self.rawdata_norm.shape)
         self.data_test = ps.concat([self.rawdata_norm, self.label_test], axis = 1)
         self.data_test.to_csv("bank-additional-test-cleaned-encoded.csv", index = False)
-# =============================================================================
+# =================================================================================
+class DropFeatures():
+    def __init__(self, data_train, data_test):
+        self.data_train = ps.read_csv(data_train)
+        self.data_test = ps.read_csv(data_test)
+        self.label_train = ps.DataFrame(columns = ['y'])
+        self.label_train = self.data_train.loc[:, 'y']
+        self.label_test = ps.DataFrame(columns = ['y'])
+        self.label_test = self.data_test.loc[:, 'y']
+        self.data_train.drop(['y'], axis = 1, inplace = True)
+
+    def dropFeatures(self, c):
+        log = LogisticRegression(penalty = 'l1', C = c, class_weight = 'balanced', solver = 'saga', max_iter = 100)
+        log.fit(self.data_train.values, self.label_train.values)
+        weights = log.coef_
+        weights = np.ravel(weights)
+        inter = log.intercept_
+        drop_feature = []
+        for i in range(len(weights)):
+            if (weights[i] != 0):
+                drop_feature.append(list(self.data_train.columns)[i])
+        self.data_train_drop = self.data_train.loc[:, drop_feature]
+        self.data_test_drop = self.data_test.loc[:, drop_feature]
+        self.data_train_drop = ps.concat([self.data_train_drop, self.label_train], axis = 1)
+        self.data_test_drop = ps.concat([self.data_test_drop, self.label_test], axis = 1)
+        self.data_train_drop.to_csv("bank-additional-train-cleaned-encoded.csv", index = False)
+        self.data_test_drop.to_csv("bank-additional-test-cleaned-encoded.csv", index = False)
+        print("Features dropped successfully!!!")
+
+class Bootstrap():
+    def __init__(self, filename):
+        self.data_x = ps.read_csv(filename)
+        self.filename = filename
+
+    def bootstrap(self):
+        data_x = self.data_x
+        data_positive = ps.DataFrame(columns = list(data_x))
+        drop_list = []
+        for i in list(data_x.index.values):
+            if (data_x.loc[i, 'y'] == 1):
+                data_positive = data_positive.append(data_x.loc[i, :], ignore_index = True)
+                drop_list.append(i)
+                data_x.drop([i], axis = 0, inplace = True)
+        data_x.reset_index(drop = True)
+        N = 2000
+        Bootstrap = ps.DataFrame(columns = list(data_x))
+        for i in range(0, N):
+            r = np.random.randint(0, len(list(data_positive.index.values)))
+            Bootstrap = Bootstrap.append(data_positive.loc[r, :], ignore_index = True)
+            s = np.random.randint(0, len(list(data_x.index.values)))
+            s = data_x.index.values[s]
+            Bootstrap = Bootstrap.append(data_x.loc[s, :], ignore_index = True)
+        Bootstrap.to_csv(self.filename, index = False)
+        
